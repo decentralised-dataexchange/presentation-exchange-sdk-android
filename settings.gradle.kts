@@ -5,3 +5,4 @@ plugins {
 
 rootProject.name = "presentationexchangesdk"
 include("lib")
+include("app")
