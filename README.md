@@ -19,6 +19,36 @@
 
 This repository hosts source code for presentation exchange SDK.
 
+## Usage
+
+1. Add the JitPack repository to your build file
+
+```kotlin
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+2. Add the dependency
+
+```kotlin
+implementation 'com.github.decentralised-dataexchange:presentation-exchange-sdk-android:<tag>'
+```
+
+Note: In order to fix `slf4j` `java.lang.NullPointerException` found in versions >= 2.0.10, do override the transitive dependency by specifying the below:
+
+```kotlin
+implementation('org.slf4j:slf4j-api') {
+    version {
+        strictly '2.0.9'
+    }
+}
+```
+
 ## Contributing
 
 Feel free to improve the plugin and send us a pull request. If you find any problems, please create an issue in this repo.
