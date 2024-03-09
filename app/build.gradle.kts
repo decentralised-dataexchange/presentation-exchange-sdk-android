@@ -5,10 +5,6 @@ plugins {
 group = "org.example"
 version = "unspecified"
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     implementation(project(":lib"))

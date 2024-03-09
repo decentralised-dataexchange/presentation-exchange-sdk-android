@@ -7,11 +7,6 @@ plugins {
     id("maven-publish")
 }
 
-repositories {
-    // Use Maven Central for resolving dependencies.
-    mavenCentral()
-    maven { setUrl("https://jitpack.io") }
-}
 
 dependencies {
     // Use the Kotlin JUnit 5 integration.
