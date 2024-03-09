@@ -1,4 +1,4 @@
-package io.igrantio.presentationexchangesdk
+package com.github.decentraliseddataexchange.presentationexchangesdk
 
 import net.jimblackler.jsonschemafriend.ValidationException
 import kotlin.test.Test

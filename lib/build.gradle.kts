@@ -45,7 +45,7 @@ tasks.named<Test>("test") {
 publishing {
     publications {
         create<MavenPublication>("Maven") {
-            groupId = "io.igrantio.presentationexchangesdk"
+            groupId = "com.github.decentraliseddataexchange"
             artifactId = rootProject.name
             version = "0.1"
             from(components["java"])
