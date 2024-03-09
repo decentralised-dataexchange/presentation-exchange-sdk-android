@@ -29,6 +29,8 @@ dependencies {
     // Library dependencies
     // JSON schema parser and validator
     implementation("net.jimblackler.jsonschemafriend:core:0.12.3")
+    // JSON path parser
+    implementation("com.jayway.jsonpath:json-path:2.9.0")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
