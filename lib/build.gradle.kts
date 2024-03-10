@@ -26,6 +26,8 @@ dependencies {
     implementation("net.jimblackler.jsonschemafriend:core:0.12.3")
     // JSON path parser
     implementation("com.jayway.jsonpath:json-path:2.9.0")
+    // JSON serialisation and deserialisation
+    implementation("com.google.code.gson:gson:2.10.1")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
