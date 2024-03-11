@@ -49,6 +49,46 @@ implementation('org.slf4j:slf4j-api') {
 }
 ```
 
+3. Example usage of the SDK:
+
+```kotlin
+import com.github.decentraliseddataexchange.presentationexchangesdk.PresentationExchange
+import com.github.decentraliseddataexchange.presentationexchangesdk.models.MatchedCredential
+import com.google.gson.Gson
+
+
+fun main() {
+    val pex = PresentationExchange()
+    val inputDescriptor =
+        """{"id":"9a18d1b5-13ac-4fbc-8c12-d5916740ce1d","constraints":{"fields":[{"path":["${'$'}.address.city"]}]}}"""
+    val credentialsList = listOf(
+        """{"type":["Passport"],"name":"John","dob":"14-Mar-70","address":{"city":"Stockholm","state":"Stockholm"}}""",
+    )
+    val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
+    println(Gson().toJson(matches))
+}
+```
+
+Will output:
+
+```json
+[
+  {
+    "index": 0,
+    "fields": [
+      {
+        "index": 0,
+        "path": {
+          "path": "$.address.city",
+          "index": 0,
+          "value": "Stockholm"
+        }
+      }
+    ]
+  }
+]
+```
+
 ## Contributing
 
 Feel free to improve the plugin and send us a pull request. If you find any problems, please create an issue in this repo.
