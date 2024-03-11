@@ -2,6 +2,7 @@ package com.github.decentraliseddataexchange.presentationexchangesdk
 
 import com.github.decentraliseddataexchange.presentationexchangesdk.models.DescriptorMap
 import com.github.decentraliseddataexchange.presentationexchangesdk.models.InputDescriptor
+import com.github.decentraliseddataexchange.presentationexchangesdk.models.MatchCredentialResponse
 import com.github.decentraliseddataexchange.presentationexchangesdk.models.PathNested
 import com.google.gson.Gson
 import com.jayway.jsonpath.JsonPath
@@ -19,7 +20,17 @@ interface IPresentationExchange {
      *     descriptor
      * @return
      */
-    fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): List<DescriptorMap>
+    fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): MatchCredentialResponse
+
+
+    /**
+     * Normalise combine format for issuance to json string
+     *
+     * @param claimJson
+     * @param disclosureBase64s
+     * @return
+     */
+    fun normaliseCombineFormatForIssuanceToJsonString(claimJson: String, disclosureBase64s: List<String>): String
 }
 
 
@@ -46,9 +57,8 @@ class PresentationExchange() : IPresentationExchange {
      *     descriptor
      * @return
      */
-    override fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): List<DescriptorMap> {
-        // TODO: The response should be blueprint to create descriptor map and SD-JWTs/JWTs in VP token
-        // TODO: If limited_disclosure = true (SD-JWT), then only the fields specified should be present in the presentation
+    override fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): MatchCredentialResponse {
+        // TODO: If limited_disclosure = true (SD-JWT), then only the fields specified in the constraints should be present in SD-JWT-R
         val inputDescriptor = this.deserialiseInputDescriptor(inputDescriptorJson)
         val gson = Gson()
         val matches = mutableListOf<DescriptorMap>()
@@ -62,7 +72,7 @@ class PresentationExchange() : IPresentationExchange {
                 // TODO: If either of the paths are available proceed as multiple paths are specified as an alternative
                 for (path in field.path) {
                     // Validate JSON path and fetch the match
-                    val matched = JsonPath.read<List<String>>(credential, path)
+                    val matched = JsonPath.read<Any>(credential, path)
                     val matchedJson = gson.toJson(matched)
                     // Validate JSON schema
                     this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())
@@ -84,7 +94,17 @@ class PresentationExchange() : IPresentationExchange {
         }
 
         // Return the list of matched results
-        return matches
+        return MatchCredentialResponse(
+            matchedCredentials = listOf(),
+            descriptorMap = matches
+        )
+    }
+
+    override fun normaliseCombineFormatForIssuanceToJsonString(
+        claimJson: String,
+        disclosureBase64s: List<String>
+    ): String {
+        TODO("Not yet implemented")
     }
 
     /**

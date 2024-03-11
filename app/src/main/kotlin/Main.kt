@@ -1,5 +1,6 @@
 package com.github.decentraliseddataexchange.presentationexchangesdk
 
+
 fun main() {
     val pex = PresentationExchange()
     val inputDescriptor = """
@@ -17,6 +18,33 @@ fun main() {
                     "const": "Passport"
                   }
                 }
+              },
+              {
+                "path": [
+                  "${'$'}.name"
+                ],
+                "filter": {
+                  "type": "string",
+                  "const": "John"
+                }
+              },
+              {
+                "path": [
+                  "${'$'}.dob"
+                ],
+                "filter": {
+                  "type": "string",
+                  "const": "14-Mar-70"
+                }
+              },
+              {
+                "path": [
+                  "${'$'}.address.city"
+                ],
+                "filter": {
+                  "type": "string",
+                  "const": "EKM"
+                }
               }
             ]
           }
@@ -26,14 +54,13 @@ fun main() {
         {
           "type": [
             "Passport"
-          ]
-        }
-    """.trimIndent(),
-        """
-        {
-          "type": [
-            "Passport"
-          ]
+          ],
+          "name": "John",
+          "dob": "14-Mar-70",
+          "address": {
+            "city": "EKM",
+            "state": "Kerala"
+          }
         }
     """.trimIndent()
     )
