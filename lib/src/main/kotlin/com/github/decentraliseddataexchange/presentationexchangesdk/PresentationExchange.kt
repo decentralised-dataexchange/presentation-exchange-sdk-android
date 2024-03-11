@@ -57,36 +57,37 @@ class PresentationExchange() : IPresentationExchange {
      * @return
      */
     override fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): List<MatchedCredential> {
-        // Note: If limited_disclosure = true (SD-JWT),
-        // then only the fields specified in the constraints should be present in SD-JWT-R
+        // Deserialize input descriptor JSON string into InputDescriptor object
         val inputDescriptor = this.deserialiseInputDescriptor(inputDescriptorJson)
         val gson = Gson()
         val matchedCredentials = mutableListOf<MatchedCredential>()
-        // Iterate through credentials
+
+        // Iterate through each credential
         credentialLoop@ for ((credentialIndex, credential) in credentials.withIndex()) {
-            // Iterate through fields specified in the constraints
             // Assume credential matches until proven otherwise
             var credentialMatched = true
-            // Matched field
             val matchedFields = mutableListOf<MatchedField>()
+
+            // Iterate through fields specified in the constraints
             fieldLoop@ for ((fieldIndex, field) in inputDescriptor.constraints.fields.withIndex()) {
-                // If optional = true, then if the validation fails, the field can be skipped
-                // Iterate through JSON paths
-                // If multiple paths are provided, then match at-least one
+                // Assume field matches until proven otherwise
                 var fieldMatched = false
+
+                // Iterate through JSON paths for the current field
                 for ((pathIndex, path) in field.path.withIndex()) {
                     try {
+                        // Attempt to read the JSON path from the credential
                         val matchedPathValue = JsonPath.read<Any>(credential, path)
                         val matchedJson = gson.toJson(matchedPathValue)
-                        if (
-                            field.filter != null &&
-                            !this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())
-                        ) {
+
+                        // Validate the matched JSON against the field's filter
+                        if (field.filter != null && !this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())) {
                             // If filter is present and validation fails, move to the next credential
                             credentialMatched = false
                             break@fieldLoop
                         }
-                        // Move to the next field if current path matches
+
+                        // Add the matched field to the list
                         fieldMatched = true
                         matchedFields.add(
                             MatchedField(
@@ -104,12 +105,14 @@ class PresentationExchange() : IPresentationExchange {
                         println(e.stackTraceToString())
                     }
                 }
+
                 if (!fieldMatched) {
                     // If any one field didn't match then move to next credential
                     credentialMatched = false
                     break@fieldLoop
                 }
             }
+
             if (credentialMatched) {
                 // All fields matched, then credential is matched
                 matchedCredentials.add(
