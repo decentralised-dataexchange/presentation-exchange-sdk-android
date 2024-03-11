@@ -1,13 +1,12 @@
 package com.github.decentraliseddataexchange.presentationexchangesdk
 
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.DescriptorMap
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.InputDescriptor
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.MatchCredentialResponse
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.PathNested
+import com.github.decentraliseddataexchange.presentationexchangesdk.models.*
 import com.google.gson.Gson
 import com.jayway.jsonpath.JsonPath
+import com.jayway.jsonpath.PathNotFoundException
 import net.jimblackler.jsonschemafriend.Schema
 import net.jimblackler.jsonschemafriend.SchemaStore
+import net.jimblackler.jsonschemafriend.ValidationException
 import net.jimblackler.jsonschemafriend.Validator
 
 
@@ -20,7 +19,7 @@ interface IPresentationExchange {
      *     descriptor
      * @return
      */
-    fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): MatchCredentialResponse
+    fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): List<MatchedCredential>
 
 
     /**
@@ -57,47 +56,73 @@ class PresentationExchange() : IPresentationExchange {
      *     descriptor
      * @return
      */
-    override fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): MatchCredentialResponse {
-        // TODO: If limited_disclosure = true (SD-JWT), then only the fields specified in the constraints should be present in SD-JWT-R
+    override fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): List<MatchedCredential> {
+        // Note: If limited_disclosure = true (SD-JWT),
+        // then only the fields specified in the constraints should be present in SD-JWT-R
         val inputDescriptor = this.deserialiseInputDescriptor(inputDescriptorJson)
         val gson = Gson()
-        val matches = mutableListOf<DescriptorMap>()
+        val matchedCredentials = mutableListOf<MatchedCredential>()
         // Iterate through credentials
-        for (credential in credentials) {
+        credentialLoop@ for ((credentialIndex, credential) in credentials.withIndex()) {
             // Iterate through fields specified in the constraints
-            // TODO: All the field filters should be validated against the filter, if one of them fails, then credential is not matched
-            // TODO: If optional = true, then if the validation fails, the field can be skipped
-            for (field in inputDescriptor.constraints.fields) {
+            // Assume credential matches until proven otherwise
+            var credentialMatched = true
+            // Matched field
+            val matchedFields = mutableListOf<MatchedField>()
+            fieldLoop@ for ((fieldIndex, field) in inputDescriptor.constraints.fields.withIndex()) {
+                // If optional = true, then if the validation fails, the field can be skipped
                 // Iterate through JSON paths
-                // TODO: If either of the paths are available proceed as multiple paths are specified as an alternative
-                for (path in field.path) {
-                    // Validate JSON path and fetch the match
-                    val matched = JsonPath.read<Any>(credential, path)
-                    val matchedJson = gson.toJson(matched)
-                    // Validate JSON schema
-                    this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())
-                    // Add the matched result to the list
-                    matches.add(
-                        DescriptorMap(
-                            format = "jwt_vp",
-                            path = "$",
-                            id = inputDescriptor.id,
-                            pathNested = PathNested(
-                                format = "jwt_vc",
-                                id = generateUUID4(),
-                                path = "$.vc[0]"
+                // If multiple paths are provided, then match at-least one
+                var fieldMatched = false
+                for ((pathIndex, path) in field.path.withIndex()) {
+                    try {
+                        val matchedPathValue = JsonPath.read<Any>(credential, path)
+                        val matchedJson = gson.toJson(matchedPathValue)
+                        if (
+                            field.filter != null &&
+                            !this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())
+                        ) {
+                            // If filter is present and validation fails, move to the next credential
+                            credentialMatched = false
+                            break@fieldLoop
+                        }
+                        // Move to the next field if current path matches
+                        fieldMatched = true
+                        matchedFields.add(
+                            MatchedField(
+                                index = fieldIndex,
+                                path = MatchedPath(
+                                    index = pathIndex,
+                                    path = path,
+                                    value = matchedPathValue
+                                )
                             )
                         )
-                    )
+                        break
+                    } catch (e: PathNotFoundException) {
+                        // If path didn't match, then move to next path
+                        println(e.stackTraceToString())
+                    }
                 }
+                if (!fieldMatched) {
+                    // If any one field didn't match then move to next credential
+                    credentialMatched = false
+                    break@fieldLoop
+                }
+            }
+            if (credentialMatched) {
+                // All fields matched, then credential is matched
+                matchedCredentials.add(
+                    MatchedCredential(
+                        index = credentialIndex,
+                        fields = matchedFields
+                    )
+                )
             }
         }
 
-        // Return the list of matched results
-        return MatchCredentialResponse(
-            matchedCredentials = listOf(),
-            descriptorMap = matches
-        )
+        // Return the list of matched credentials
+        return matchedCredentials
     }
 
     override fun normaliseCombineFormatForIssuanceToJsonString(
@@ -113,14 +138,20 @@ class PresentationExchange() : IPresentationExchange {
      * @param input json input
      * @param jsonSchemaStr json schema for validating the input
      */
-    private fun validateJsonSchema(input: String, jsonSchemaStr: String) {
-        // Initialize a SchemaStore.
-        val schemaStore = SchemaStore()
-        // Load the schema.
-        val schema: Schema = schemaStore.loadSchemaJson(jsonSchemaStr)
-        // Create a validator.
-        val validator = Validator()
-        // Validate JSON based on the input, if failed will throw ValidationException
-        validator.validateJson(schema, input)
+    private fun validateJsonSchema(input: String, jsonSchemaStr: String): Boolean {
+        try {
+            // Initialize a SchemaStore.
+            val schemaStore = SchemaStore()
+            // Load the schema.
+            val schema: Schema = schemaStore.loadSchemaJson(jsonSchemaStr)
+            // Create a validator.
+            val validator = Validator()
+            // Validate JSON based on the input, if failed will throw ValidationException
+            validator.validateJson(schema, input)
+            return true
+        } catch (e: ValidationException) {
+            return false
+        }
+
     }
 }

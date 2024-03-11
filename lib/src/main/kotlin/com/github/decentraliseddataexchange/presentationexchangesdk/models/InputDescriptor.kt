@@ -23,7 +23,8 @@ data class InputDescriptor(
  * @property fields
  */
 data class Constraints(
-    val fields: List<Field>
+    val fields: List<Field>,
+    val limit_disclosure: String?
 )
 
 
@@ -36,7 +37,8 @@ data class Constraints(
  */
 data class Field(
     val path: List<String>,
-    val filter: Filter
+    val filter: Filter?,
+    val optional: Boolean?
 )
 
 

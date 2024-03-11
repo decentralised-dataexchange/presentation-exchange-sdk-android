@@ -1,45 +1,62 @@
 package com.github.decentraliseddataexchange.presentationexchangesdk
 
+import com.github.decentraliseddataexchange.presentationexchangesdk.models.MatchedCredential
 import net.jimblackler.jsonschemafriend.ValidationException
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class PresentationExchangeTest {
 
     @Test
-    fun `valid JSON should not throw exception`() {
-        val presentationExchange = PresentationExchange()
+    fun `valid input descriptor with 4 fields, 1 path each, 1 filter each and 1 matching credential`() {
+        val pex = PresentationExchange()
+        val inputDescriptor =
+            """{"id":"9a18d1b5-13ac-4fbc-8c12-d5916740ce1d","constraints":{"fields":[{"path":["${'$'}.type"],"filter":{"type":"array","contains":{"const":"Passport"}}},{"path":["${'$'}.name"],"filter":{"type":"string","const":"John"}},{"path":["${'$'}.dob"],"filter":{"type":"string","const":"14-Mar-70"}},{"path":["${'$'}.address.city"],"filter":{"type":"string","const":"EKM"}}]}}"""
+        val credentialsList = listOf(
+            """{"type":["Passport"],"name":"John","dob":"14-Mar-70","address":{"city":"EKM","state":"Kerala"}}""",
+        )
+        val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
 
-        // JSON schema for testing with an array type.
-        val jsonSchema = (
-                "{"
-                        + "  \"\$schema\": \"http://json-schema.org/draft-07/schema#\","
-                        + "  \"type\": \"array\""
-                        + "}")
-
-        // Set the schema in the PresentationExchange instance.
-        presentationExchange.setSchema(jsonSchema)
-
-        // No exception should be thrown for valid input.
-        // Note: input is now a JSON array, represented as a string.
-        val input = "[\"Passport\"]"
-        presentationExchange.validateJsonSchema(input)
+        assertEquals(1, matches.size)
+        assertEquals(4, matches[0].fields.size)
     }
 
     @Test
-    fun `invalid JSON should throw ValidationException`() {
-        val presentationExchange = PresentationExchange()
-        // JSON schema for testing.
-        val jsonSchema = ("{"
-                + "  \"\$schema\": \"http://json-schema.org/draft-07/schema#\","
-                + "  \"type\": \"integer\""
-                + "}")
-        // Set the schema in the PresentationExchange instance.
-        presentationExchange.setSchema(jsonSchema)
-        // An exception of type ValidationException should be thrown for invalid input.
-        val input = "true"
-        assertFailsWith<ValidationException> {
-            presentationExchange.validateJsonSchema(input)
-        }
+    fun `valid input descriptor with 1 field, 1 path each, 0 filter and and 1 matching credential`() {
+        val pex = PresentationExchange()
+        val inputDescriptor =
+            """{"id":"9a18d1b5-13ac-4fbc-8c12-d5916740ce1d","constraints":{"fields":[{"path":["${'$'}.address.city"]}]}}"""
+        val credentialsList = listOf(
+            """{"type":["Passport"],"name":"John","dob":"14-Mar-70","address":{"city":"EKM","state":"Kerala"}}""",
+        )
+        val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
+
+        assertEquals(1, matches.size)
+        assertEquals(1, matches[0].fields.size)
+        assertEquals("$.address.city", matches[0].fields[0].path.path)
+        assertEquals("EKM", matches[0].fields[0].path.value)
+    }
+
+    @Test
+    fun `valid input descriptor with 1 field, 1 path each, 1 filter and and 2 matching credential`() {
+        val pex = PresentationExchange()
+        val inputDescriptor =
+            """{"id":"9a18d1b5-13ac-4fbc-8c12-d5916740ce1d","constraints":{"fields":[{"path":["${'$'}.address.city"]}]}}"""
+        val credentialsList = listOf(
+            """{"type":["Passport"],"name":"John","dob":"14-Mar-70","address":{"city":"EKM","state":"Kerala"}}""",
+            """{"type":["Passport"],"name":"Alice","dob":"14-Mar-80","address":{"city":"Stockholm","state":"Stockholm"}}"""
+        )
+        val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
+
+        assertEquals(2, matches.size)
+        assertEquals(1, matches[0].fields.size)
+        assertEquals("$.address.city", matches[0].fields[0].path.path)
+        assertEquals("EKM", matches[0].fields[0].path.value)
+
+        assertEquals(1, matches[1].fields.size)
+        assertEquals("$.address.city", matches[1].fields[0].path.path)
+        assertEquals("Stockholm", matches[1].fields[0].path.value)
     }
 }

@@ -62,7 +62,7 @@ fun main() {
             "state": "Kerala"
           }
         }
-    """.trimIndent()
+    """.trimIndent(),
     )
     val matches = pex.matchCredentials(inputDescriptor, credentialsList)
     println(matches)
