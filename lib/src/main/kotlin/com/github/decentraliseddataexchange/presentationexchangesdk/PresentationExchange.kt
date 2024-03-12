@@ -62,58 +62,106 @@ class PresentationExchange() : IPresentationExchange {
         val gson = Gson()
         val matchedCredentials = mutableListOf<MatchedCredential>()
 
+        //to check if the credential is SDJWT or not
+        val limitDisclosure = inputDescriptor.constraints?.limit_disclosure
         // Iterate through each credential
         credentialLoop@ for ((credentialIndex, credential) in credentials.withIndex()) {
             // Assume credential matches until proven otherwise
             var credentialMatched = true
             val matchedFields = mutableListOf<MatchedField>()
 
+            var isValidCredential = true
+
             // Iterate through fields specified in the constraints
             fieldLoop@ for ((fieldIndex, field) in inputDescriptor.constraints.fields.withIndex()) {
                 // Assume field matches until proven otherwise
                 var fieldMatched = false
 
-                // Iterate through JSON paths for the current field
-                for ((pathIndex, path) in field.path.withIndex()) {
-                    try {
-                        // Attempt to read the JSON path from the credential
-                        val matchedPathValue = JsonPath.read<Any>(credential, path)
-                        val matchedJson = gson.toJson(matchedPathValue)
+                //todo implement required and optional tags in limitDisclosure
 
-                        // Validate the matched JSON against the field's filter
-                        if (field.filter != null && !this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())) {
-                            // If filter is present and validation fails, move to the next credential
-                            credentialMatched = false
-                            break@fieldLoop
-                        }
+                //sd jwt fetching all request fields
+                if (limitDisclosure != null) {
+                    // Iterate through JSON paths for the current field
+                    for ((pathIndex, path) in field.path.withIndex()) {
+                        try {
+                            // Attempt to read the JSON path from the credential
+                            val matchedPathValue = JsonPath.read<Any>(credential, path)
+                            val matchedJson = gson.toJson(matchedPathValue)
 
-                        // Add the matched field to the list
-                        fieldMatched = true
-                        matchedFields.add(
-                            MatchedField(
-                                index = fieldIndex,
-                                path = MatchedPath(
-                                    index = pathIndex,
-                                    path = path,
-                                    value = matchedPathValue
+                            // Validate the matched JSON against the field's filter
+                            if (field.filter != null && !this.validateJsonSchema(
+                                    matchedJson,
+                                    field.filter.toJsonSchemaString()
+                                )
+                            ) {
+                                // If filter is present and validation fails, move to the next credential
+                                credentialMatched = false
+                                break@fieldLoop
+                            }
+
+                            // Add the matched field to the list
+                            fieldMatched = true
+                            matchedFields.add(
+                                MatchedField(
+                                    index = fieldIndex,
+                                    path = MatchedPath(
+                                        index = pathIndex,
+                                        path = path,
+                                        value = matchedPathValue
+                                    )
                                 )
                             )
-                        )
-                        break
-                    } catch (e: PathNotFoundException) {
-                        // If path didn't match, then move to next path
-                        println(e.stackTraceToString())
-                    }
-                }
+                            break
+                        } catch (e: PathNotFoundException) {
+                            // If path didn't match, then move to next path
+                            println(e.stackTraceToString())
+                        }
 
-                if (!fieldMatched) {
-                    // If any one field didn't match then move to next credential
-                    credentialMatched = false
-                    break@fieldLoop
+                    }
+
+                    if (!fieldMatched) {
+                        // If any one field didn't match then move to next credential
+                        credentialMatched = false
+                        break@fieldLoop
+                    }
+                } else { //fetching the credential which satisfy all the field filters
+                    for ((pathIndex, path) in field.path.withIndex()) {
+                        try {
+                            // Attempt to read the JSON path from the credential
+                            val matchedPathValue = JsonPath.read<Any>(credential, path)
+                            val matchedJson = gson.toJson(matchedPathValue)
+
+                            // Validate the matched JSON against the field's filter
+                            if (field.filter != null && !this.validateJsonSchema(
+                                    matchedJson,
+                                    field.filter.toJsonSchemaString()
+                                )
+                            ) {
+                                // If filter is present and validation fails, move to the next credential
+                                isValidCredential = false
+                                break@fieldLoop
+                            }
+                            break
+                        } catch (e: PathNotFoundException) {
+                            // If path didn't match, then move to next path
+                            println(e.stackTraceToString())
+                        }
+                    }
                 }
             }
 
-            if (credentialMatched) {
+            //for jwt
+            if (limitDisclosure == null && isValidCredential) {
+                matchedCredentials.add(
+                    MatchedCredential(
+                        index = credentialIndex,
+                        vc = credential
+                    )
+                )
+            }
+
+            //for sdjwt
+            if (limitDisclosure != null && credentialMatched) {
                 // All fields matched, then credential is matched
                 matchedCredentials.add(
                     MatchedCredential(

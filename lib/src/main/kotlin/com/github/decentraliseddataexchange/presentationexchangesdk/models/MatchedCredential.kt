@@ -38,6 +38,7 @@ data class MatchedField(
  */
 data class MatchedCredential(
     val index:  Int,
-    val fields: List<MatchedField>
+    val fields: List<MatchedField>? = null,
+    val vc: String?= null
 )
 

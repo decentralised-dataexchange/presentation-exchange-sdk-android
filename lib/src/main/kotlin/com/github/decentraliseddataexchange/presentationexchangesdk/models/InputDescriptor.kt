@@ -51,7 +51,9 @@ data class Field(
  */
 data class Filter(
     val type: String,
-    val contains: Contains
+    val contains: Contains? =null,
+    val const: String? = null,
+    val pattern:String? = null
 ) {
     /**
      * To json schema string
