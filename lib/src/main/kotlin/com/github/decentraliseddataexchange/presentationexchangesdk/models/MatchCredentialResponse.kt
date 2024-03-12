@@ -6,8 +6,8 @@ data class SdJwtField(
 )
 
 data class MatchedCredentials(
-    val sdJwtField: List<SdJwtField>,
-    val vc: Any
+    val sdJwtField: List<SdJwtField>? = listOf(),
+    val vc: Any? = null
 )
 
 // { "matchedCredentials": [ { "fields":  [ { "index": 0, "jsonPathMatch": "[]" } ], "vc": "Passport" } ]

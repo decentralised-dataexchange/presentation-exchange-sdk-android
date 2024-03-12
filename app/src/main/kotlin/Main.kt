@@ -21,29 +21,11 @@ fun main() {
               },
               {
                 "path": [
-                  "${'$'}.name"
-                ],
-                "filter": {
-                  "type": "string",
-                  "const": "John"
-                }
-              },
-              {
-                "path": [
-                  "${'$'}.dob"
-                ],
-                "filter": {
-                  "type": "string",
-                  "const": "14-Mar-70"
-                }
-              },
-              {
-                "path": [
                   "${'$'}.address.city"
                 ],
                 "filter": {
                   "type": "string",
-                  "const": "EKM"
+                    "pattern": "EKM"
                 }
               }
             ]
@@ -54,6 +36,45 @@ fun main() {
         {
           "type": [
             "Passport"
+          ],
+          "name": "John",
+          "dob": "14-Mar-70",
+          "address": {
+            "city": "EKM",
+            "state": "Kerala"
+          }
+        }
+    """.trimIndent(),
+        """
+        {
+          "type": [
+            "Passport"
+          ],
+          "name": "John",
+          "dob": "14-Mar-70",
+          "address": {
+            "city": "EKM",
+            "state": "Kerala"
+          }
+        }
+    """.trimIndent(),
+        """
+        {
+          "type": [
+            "Passport"
+          ],
+          "name": "John",
+          "dob": "14-Mar-70",
+          "address": {
+            "city": "TVM",
+            "state": "Kerala"
+          }
+        }
+    """.trimIndent(),
+        """
+        {
+          "type": [
+            "Ess"
           ],
           "name": "John",
           "dob": "14-Mar-70",

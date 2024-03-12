@@ -1,13 +1,12 @@
 package com.github.decentraliseddataexchange.presentationexchangesdk
 
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.DescriptorMap
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.InputDescriptor
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.MatchCredentialResponse
-import com.github.decentraliseddataexchange.presentationexchangesdk.models.PathNested
+import com.github.decentraliseddataexchange.presentationexchangesdk.models.*
 import com.google.gson.Gson
 import com.jayway.jsonpath.JsonPath
+import com.jayway.jsonpath.PathNotFoundException
 import net.jimblackler.jsonschemafriend.Schema
 import net.jimblackler.jsonschemafriend.SchemaStore
+import net.jimblackler.jsonschemafriend.ValidationException
 import net.jimblackler.jsonschemafriend.Validator
 
 
@@ -26,8 +25,8 @@ interface IPresentationExchange {
     /**
      * Normalise combine format for issuance to json string
      *
-     * @param claimJson
-     * @param disclosureBase64s
+     * @param claimJson - from credential
+     * @param disclosureBase64s - list of all disclosures
      * @return
      */
     fun normaliseCombineFormatForIssuanceToJsonString(claimJson: String, disclosureBase64s: List<String>): String
@@ -62,26 +61,40 @@ class PresentationExchange() : IPresentationExchange {
         val inputDescriptor = this.deserialiseInputDescriptor(inputDescriptorJson)
         val gson = Gson()
         val matches = mutableListOf<DescriptorMap>()
+        val matchedCredentials = mutableListOf<MatchedCredentials>()
         // Iterate through credentials
+        val limitDisclosure = inputDescriptor.constraints?.limit_disclosure
         for (credential in credentials) {
             // Iterate through fields specified in the constraints
-            // TODO: All the field filters should be validated against the filter, if one of them fails, then credential is not matched
             // TODO: If optional = true, then if the validation fails, the field can be skipped
-            for (field in inputDescriptor.constraints.fields) {
-                // Iterate through JSON paths
-                // TODO: If either of the paths are available proceed as multiple paths are specified as an alternative
-                for (path in field.path) {
-                    // Validate JSON path and fetch the match
-                    val matched = JsonPath.read<Any>(credential, path)
-                    val matchedJson = gson.toJson(matched)
-                    // Validate JSON schema
-                    this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())
+            if (limitDisclosure == null) {
+                var isMatched = true
+                for (field in inputDescriptor.constraints?.fields ?: listOf()) {
+                    // Iterate through JSON paths
+                    // TODO: remove the buildVariationsOfJsonPath function, once its stable
+                    for (path in buildVariationsOfJsonPath(field.path)) {
+                        // Validate JSON path and fetch the match
+                        try {
+                            val matched = JsonPath.read<Any>(credential, path)
+                            val matchedJson = gson.toJson(matched)
+                            // Validate JSON schema
+                            try {
+                                this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())
+                            } catch (e: ValidationException) {
+                                isMatched = false
+                            }
+                        } catch (e: PathNotFoundException) {
+                            // go on loop if path is not present
+                        }
+                    }
+                }
+                if (isMatched) {
                     // Add the matched result to the list
                     matches.add(
                         DescriptorMap(
                             format = "jwt_vp",
                             path = "$",
-                            id = inputDescriptor.id,
+                            id = inputDescriptor.id ?: "",
                             pathNested = PathNested(
                                 format = "jwt_vc",
                                 id = generateUUID4(),
@@ -89,13 +102,14 @@ class PresentationExchange() : IPresentationExchange {
                             )
                         )
                     )
+                    matchedCredentials.add(MatchedCredentials(vc = credential))
                 }
             }
         }
 
         // Return the list of matched results
         return MatchCredentialResponse(
-            matchedCredentials = listOf(),
+            matchedCredentials = matchedCredentials,
             descriptorMap = matches
         )
     }
@@ -105,6 +119,30 @@ class PresentationExchange() : IPresentationExchange {
         disclosureBase64s: List<String>
     ): String {
         TODO("Not yet implemented")
+    }
+
+    /**
+     * This is a temporary solution to handle paths when the input descriptors
+     *      didn't mention variations of the paths
+     *      eg : $.vc.type and $.type
+     * This had to be removed when everyone follows same structure
+     */
+    private fun buildVariationsOfJsonPath(pathList: List<String>?): List<String> {
+        val newPathList: ArrayList<String> = ArrayList()
+
+        for (path in pathList ?: ArrayList()) {
+            newPathList.add(path)
+            if (path.contains(".vc")) {
+                if (pathList?.contains(path.replace(".vc", "")) != true)
+                    newPathList.add(path.replace(".vc", ""))
+            }
+
+            if (!path.contains(".vc"))
+                if (pathList?.contains("$.vc${path.replace("$", "")}") != true)
+                    newPathList.add("$.vc${path.replace("$", "")}")
+        }
+
+        return newPathList
     }
 
     /**

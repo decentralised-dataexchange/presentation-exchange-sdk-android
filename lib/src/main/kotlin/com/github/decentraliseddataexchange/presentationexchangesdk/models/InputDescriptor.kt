@@ -11,8 +11,8 @@ import com.google.gson.Gson
  * @property constraints
  */
 data class InputDescriptor(
-    val id: String,
-    val constraints: Constraints
+    val id: String?,
+    val constraints: Constraints?
 )
 
 
@@ -23,7 +23,8 @@ data class InputDescriptor(
  * @property fields
  */
 data class Constraints(
-    val fields: List<Field>
+    val fields: List<Field>?,
+    val limit_disclosure:String?
 )
 
 
@@ -49,7 +50,9 @@ data class Field(
  */
 data class Filter(
     val type: String,
-    val contains: Contains
+    val contains: Contains,
+    val const: String?,
+    val pattern: String?
 ) {
     /**
      * To json schema string
