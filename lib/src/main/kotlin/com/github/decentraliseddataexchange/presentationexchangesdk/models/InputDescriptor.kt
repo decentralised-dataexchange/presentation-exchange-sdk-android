@@ -1,7 +1,5 @@
 package com.github.decentraliseddataexchange.presentationexchangesdk.models
 
-import com.google.gson.Gson
-
 
 /**
  * Input descriptor
