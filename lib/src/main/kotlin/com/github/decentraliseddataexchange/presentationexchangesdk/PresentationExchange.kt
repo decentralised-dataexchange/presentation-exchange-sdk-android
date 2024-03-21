@@ -20,16 +20,6 @@ interface IPresentationExchange {
      * @return
      */
     fun matchCredentials(inputDescriptorJson: String, credentials: List<String>): List<MatchedCredential>
-
-
-    /**
-     * Normalise combine format for issuance to json string
-     *
-     * @param claimJson
-     * @param disclosureBase64s
-     * @return
-     */
-    fun normaliseCombineFormatForIssuanceToJsonString(claimJson: String, disclosureBase64s: List<String>): String
 }
 
 
@@ -46,6 +36,19 @@ class PresentationExchange() : IPresentationExchange {
         // Deserialise JSON string into <InputDescriptor>
         val jsonData = gson.fromJson(inputDescriptorJson, InputDescriptor::class.java)
         return jsonData
+    }
+
+    /**
+     * To json schema string
+     *
+     * @param input
+     * @return Json string
+     */
+    private fun toJsonSchemaString(input: Any): String {
+        val gson = Gson()
+        val jsonSchema = gson.toJsonTree(input).asJsonObject
+        jsonSchema.addProperty("\$schema", "http://json-schema.org/draft-07/schema#")
+        return gson.toJson(jsonSchema)
     }
 
     /**
@@ -81,7 +84,7 @@ class PresentationExchange() : IPresentationExchange {
                         val matchedJson = gson.toJson(matchedPathValue)
 
                         // Validate the matched JSON against the field's filter
-                        if (field.filter != null && !this.validateJsonSchema(matchedJson, field.filter.toJsonSchemaString())) {
+                        if (field.filter != null && !this.validateJsonSchema(matchedJson, toJsonSchemaString(field.filter))) {
                             // If filter is present and validation fails, move to the next credential
                             credentialMatched = false
                             break@fieldLoop
@@ -126,13 +129,6 @@ class PresentationExchange() : IPresentationExchange {
 
         // Return the list of matched credentials
         return matchedCredentials
-    }
-
-    override fun normaliseCombineFormatForIssuanceToJsonString(
-        claimJson: String,
-        disclosureBase64s: List<String>
-    ): String {
-        TODO("Not yet implemented")
     }
 
     /**

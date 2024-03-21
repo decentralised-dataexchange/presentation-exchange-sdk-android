@@ -37,44 +37,8 @@ data class Constraints(
  */
 data class Field(
     val path: List<String>,
-    val filter: Filter?,
+    val filter: Any?,
     val optional: Boolean?
-)
-
-
-/**
- * Filter
- *
- * @constructor Create empty Filter
- * @property type
- * @property contains
- */
-data class Filter(
-    val type: String,
-    val contains: Contains
-) {
-    /**
-     * To json schema string
-     *
-     * @return
-     */
-    fun toJsonSchemaString(): String {
-        val gson = Gson()
-        val jsonSchema = gson.toJsonTree(this).asJsonObject
-        jsonSchema.addProperty("\$schema", "http://json-schema.org/draft-07/schema#")
-        return gson.toJson(jsonSchema)
-    }
-}
-
-
-/**
- * Contains
- *
- * @constructor Create empty Contains
- * @property const
- */
-data class Contains(
-    val const: String
 )
 
 
