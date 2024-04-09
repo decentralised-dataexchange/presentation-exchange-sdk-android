@@ -7,9 +7,9 @@ import com.google.gson.Gson
 fun main() {
     val pex = PresentationExchange()
     val inputDescriptor =
-        """{"id":"9a18d1b5-13ac-4fbc-8c12-d5916740ce1d","constraints":{"fields":[{"path":["${'$'}.address.city"]}]}}"""
+        """{"id":"abd4acb1-1dcb-41ad-8596-ceb1401a69c7","format":{"vc+sd-jwt":{"alg":["ES256","ES384"]}},"constraints":{"fields":[{"path":["${'$'}.given_name"]},{"path":["${'$'}.last_name"]},{"path":["${'$'}.vct"],"filter":{"type":"string","const":"VerifiablePortableDocumentA1"}}]},"limit_disclosure":"required"}"""
     val credentialsList = listOf(
-        """{"type":["Passport"],"name":"John","dob":"14-Mar-70","address":{"city":"EKM","state":"Kerala"}}""",
+        """{"iss":"https://dss.aegean.gr/rfc-issuer","iat":1712657569263,"vct":"VerifiablePortableDocumentA1","given_name":"John","last_name":"Doe"}""",
     )
     val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
     println(Gson().toJson(matches))
