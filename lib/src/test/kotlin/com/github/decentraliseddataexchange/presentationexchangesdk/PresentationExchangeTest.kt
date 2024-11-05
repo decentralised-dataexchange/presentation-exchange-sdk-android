@@ -69,4 +69,40 @@ class PresentationExchangeTest {
 
         assertEquals(1, matches.size)
     }
+
+    @Test
+    fun  `find matched Credentials of field vct which is not present in credential and field optional value is true`(){
+        val pex = PresentationExchange()
+        val inputDescriptor =
+            """{"id":"abd4acb1-1dcb-41ad-8596-ceb1401a69c7","format":{"vc+sd-jwt":{"alg":["ES256","ES384"]}},"constraints":{"fields":[{"path":["${'$'}.given_name"]},{"path":["${'$'}.last_name"]},{"path":["${'$'}.vct"],"filter":{"type":"string","const":"VerifiablePortableDocumentA1"},"optional":true}]},"limit_disclosure":"required"}"""
+        val credentialsList = listOf(
+            """{"iss":"https://dss.aegean.gr/rfc-issuer","iat":1712657569263,"given_name":"John","last_name":"Doe"}""",
+        )
+        val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
+        assertEquals(1, matches.size)
+    }
+
+    @Test
+    fun  `find matched Credentials of field vct which is not present in credential and field optional value is false`(){
+        val pex = PresentationExchange()
+        val inputDescriptor =
+            """{"id":"abd4acb1-1dcb-41ad-8596-ceb1401a69c7","format":{"vc+sd-jwt":{"alg":["ES256","ES384"]}},"constraints":{"fields":[{"path":["${'$'}.given_name"]},{"path":["${'$'}.last_name"]},{"path":["${'$'}.vct"],"filter":{"type":"string","const":"VerifiablePortableDocumentA1"},"optional":false}]},"limit_disclosure":"required"}"""
+        val credentialsList = listOf(
+            """{"iss":"https://dss.aegean.gr/rfc-issuer","iat":1712657569263,"given_name":"John","last_name":"Doe"}""",
+        )
+        val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
+        assertEquals(0, matches.size)
+    }
+
+    @Test
+    fun  `find matched Credentials of field vct which is not present in credential and field optional is not present`(){
+        val pex = PresentationExchange()
+        val inputDescriptor =
+            """{"id":"abd4acb1-1dcb-41ad-8596-ceb1401a69c7","format":{"vc+sd-jwt":{"alg":["ES256","ES384"]}},"constraints":{"fields":[{"path":["${'$'}.given_name"]},{"path":["${'$'}.last_name"]},{"path":["${'$'}.vct"],"filter":{"type":"string","const":"VerifiablePortableDocumentA1"}}]},"limit_disclosure":"required"}"""
+        val credentialsList = listOf(
+            """{"iss":"https://dss.aegean.gr/rfc-issuer","iat":1712657569263,"given_name":"John","last_name":"Doe"}""",
+        )
+        val matches: List<MatchedCredential> = pex.matchCredentials(inputDescriptor, credentialsList)
+        assertEquals(0, matches.size)
+    }
 }
