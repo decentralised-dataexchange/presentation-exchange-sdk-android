@@ -111,7 +111,9 @@ class PresentationExchange() : IPresentationExchange {
 
                 if (!fieldMatched) {
                     // If any one field didn't match then move to next credential
-                    credentialMatched = false
+                    if (field.optional != true) {
+                        credentialMatched = false
+                    }
                     break@fieldLoop
                 }
             }
